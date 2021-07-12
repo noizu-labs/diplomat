@@ -69,7 +69,11 @@ defmodule Diplomat.Key do
   defp from_path([[kind, id] | tail], parent),
     do: from_path(tail, new(kind, id, parent))
 
-  @spec proto(nil | t) :: nil | PbKey.t()
+  def goth_project(opts \\ nil) do
+    Diplomat.Client.goth_project(opts)
+  end
+
+  @spec proto(nil | t, opts :: Keyword.t) :: nil | PbKey.t()
   @doc """
   Convert a `Diplomat.Key` to its protobuf struct.
 
@@ -77,9 +81,10 @@ defmodule Diplomat.Key do
   binary representation, but instead returns a `Diplomat.Proto.Key` struct
   (which is later converted to the binary format).
   """
-  def proto(nil), do: nil
+  def proto(for, opts \\nil)
+  def proto(nil, _opts), do: nil
 
-  def proto(%__MODULE__{} = key) do
+  def proto(%__MODULE__{} = key, opts) do
     path_els =
       key
       |> path
@@ -90,10 +95,8 @@ defmodule Diplomat.Key do
       case key.project_id || key.namespace do
         nil ->
           nil
-
         _ ->
-          {:ok, global_project_id} = Goth.Config.get(:project_id)
-
+          {:ok, global_project_id} = goth_project(opts)
           PbPartition.new(
             project_id: key.project_id || global_project_id,
             namespace_id: key.namespace
@@ -163,16 +166,16 @@ defmodule Diplomat.Key do
     |> Diplomat.Client.allocate_ids()
   end
 
-  @spec get([t] | t) :: [Entity.t()] | Client.error()
-  def get(keys) when is_list(keys) do
+  @spec get([t] | t, opts :: Keyword.t) :: [Entity.t()] | Client.error()
+  def get(for, opts \\ nil)
+  def get(keys, opts) when is_list(keys) do
     %LookupRequest{
-      keys: Enum.map(keys, &proto(&1))
+      keys: Enum.map(keys, &proto(&1, opts))
     }
-    |> Diplomat.Client.lookup()
+    |> Diplomat.Client.lookup(opts)
   end
-
-  def get(%__MODULE__{} = key) do
-    get([key])
+  def get(%__MODULE__{} = key, opts) do
+    get([key], opts)
   end
 
   @spec path_to_proto([key_pair], [PbPathElement.t()]) :: [PbPathElement.t()]

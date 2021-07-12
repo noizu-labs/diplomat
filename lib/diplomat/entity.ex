@@ -157,14 +157,14 @@ defmodule Diplomat.Entity do
     end
   end
 
-  @spec insert([t] | t) :: [Key.t()] | Client.error()
-  def insert(%Entity{} = entity), do: insert([entity])
-
-  def insert(entities) when is_list(entities) do
+  @spec insert([t] | t, opts :: Keyword.t) :: [Key.t()] | Client.error()
+  def insert(entity, opts \\ nil)
+  def insert(%Entity{} = entity, opts), do: insert([entity], opts)
+  def insert(entities, opts) when is_list(entities) do
     entities
     |> Enum.map(fn e -> {:insert, e} end)
-    |> commit_request
-    |> Diplomat.Client.commit()
+    |> commit_request(opts)
+    |> Diplomat.Client.commit(opts)
     |> case do
       {:ok, resp} -> Key.from_commit_proto(resp)
       any -> any
@@ -172,14 +172,14 @@ defmodule Diplomat.Entity do
   end
 
   # at some point we should validate the entity keys
-  @spec upsert([t] | t) :: {:ok, CommitResponse.t()} | Client.error()
-  def upsert(%Entity{} = entity), do: upsert([entity])
-
-  def upsert(entities) when is_list(entities) do
+  @spec upsert([t] | t, opts :: Keyword.t) :: {:ok, CommitResponse.t()} | Client.error()
+  def upsert(entity, opts \\ nil)
+  def upsert(%Entity{} = entity, opts), do: upsert([entity], opts)
+  def upsert(entities, opts) when is_list(entities) do
     entities
     |> Enum.map(fn e -> {:upsert, e} end)
-    |> commit_request
-    |> Diplomat.Client.commit()
+    |> commit_request(opts)
+    |> Diplomat.Client.commit(opts)
     |> case do
       {:ok, resp} -> resp
       any -> any
